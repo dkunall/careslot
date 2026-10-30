@@ -176,6 +176,17 @@ public class BookingService {
         return appointments.forPatient(patientId);
     }
 
+    /** One doctor's day for staff screens: ids, times and status, no patient details. */
+    public List<AppointmentRow> forPractitionerDay(Actor actor, UUID practitionerId, java.time.LocalDate day) {
+        if (!actor.staff()) {
+            throw ApiException.forbidden("forbidden", "staff only");
+        }
+        java.time.ZoneId zone = directory.practitionerZone(practitionerId)
+                .orElseThrow(() -> ApiException.notFound("practitioner"));
+        return appointments.forPractitioner(practitionerId,
+                new Interval(day.atStartOfDay(zone).toInstant(), day.plusDays(1).atStartOfDay(zone).toInstant()));
+    }
+
     /**
      * The booking itself, run inside the caller's transaction. Used by {@link #book}, {@link #reschedule}
      * and the waitlist matcher, which needs the {@link Outcome} rather than an exception.
@@ -300,32 +311,75 @@ public class BookingService {
             if (d.booked() >= limit) {
                 continue;
             }
-            List<SlotRef> refs = new ArrayList<>();
-            refs.add(new SlotRef(d.id(), d.resourceId(), ResourceKind.PRACTITIONER, d.period(), d.booked(), limit));
+            SlotRef doctor = new SlotRef(d.id(), d.resourceId(), ResourceKind.PRACTITIONER, d.period(), d.booked(), limit);
             caps.put(d.id(), d.capacity());
-            boolean feasible = true;
+            List<List<SlotRow>> groups = new ArrayList<>();
             for (List<UUID> group : cmd.needs()) {
-                Optional<SlotRow> pick = group.stream()
+                groups.add(group.stream()
                         .flatMap(id -> needSlots.getOrDefault(id, List.of()).stream())
                         .filter(s -> s.period().contains(d.period()))
-                        .min(Comparator.comparingInt(SlotRow::booked).thenComparingLong(SlotRow::id));
-                if (pick.isEmpty()) {
-                    feasible = false;
-                    break;
-                }
-                SlotRow s = pick.get();
-                refs.add(new SlotRef(s.id(), s.resourceId(), s.kind(), s.period(), s.booked(), s.capacity()));
-                caps.put(s.id(), s.capacity());
-            }
-            if (!feasible) {
-                continue;
+                        .sorted(Comparator.comparingInt(SlotRow::booked).thenComparingLong(SlotRow::id))
+                        .limit(PER_GROUP).toList());
             }
             LocalDate day = d.period().start().atZone(zone).toLocalDate();
             int load = loads.computeIfAbsent(d.resourceId() + "/" + day,
                     k -> appointments.liveCount(d.resourceId(), day, zone));
-            out.add(new BookingOption(d.resourceId(), d.period(), refs, load));
+            for (List<SlotRow> combo : combinations(groups)) {
+                List<SlotRef> refs = new ArrayList<>();
+                refs.add(doctor);
+                for (SlotRow s : combo) {
+                    refs.add(new SlotRef(s.id(), s.resourceId(), s.kind(), s.period(), s.booked(), s.capacity()));
+                    caps.put(s.id(), s.capacity());
+                }
+                out.add(new BookingOption(d.resourceId(), d.period(), refs, load));
+            }
         }
         return new Candidates(out, caps);
+    }
+
+    /** Room/equipment candidates kept per need group, and resource combinations offered per doctor slot. */
+    static final int PER_GROUP = 3;
+    static final int COMBOS_PER_SLOT = 4;
+
+    /**
+     * Combinations of one slot per need group, least-booked first (ordered by the sum of each pick's rank), at
+     * most {@link #COMBOS_PER_SLOT}. Offering more than one combination matters under contention: when two
+     * requests both go for the emptiest room, the loser falls back to the other room instead of giving up the
+     * doctor slot. A combination that uses one slot twice is skipped.
+     */
+    static List<List<SlotRow>> combinations(List<List<SlotRow>> groups) {
+        List<int[]> picks = new ArrayList<>();
+        picks.add(new int[groups.size()]);
+        for (int g = 0; g < groups.size(); g++) {
+            int size = groups.get(g).size();
+            if (size == 0) {
+                return List.of();
+            }
+            List<int[]> next = new ArrayList<>();
+            for (int[] p : picks) {
+                for (int i = 0; i < size; i++) {
+                    int[] q = p.clone();
+                    q[g] = i;
+                    next.add(q);
+                }
+            }
+            picks = next;
+        }
+        picks.sort(Comparator.comparingInt((int[] p) -> java.util.Arrays.stream(p).sum()));
+        List<List<SlotRow>> out = new ArrayList<>();
+        for (int[] p : picks) {
+            List<SlotRow> combo = new ArrayList<>();
+            for (int g = 0; g < p.length; g++) {
+                combo.add(groups.get(g).get(p[g]));
+            }
+            if (combo.stream().map(SlotRow::id).distinct().count() == combo.size()) {
+                out.add(combo);
+            }
+            if (out.size() == COMBOS_PER_SLOT) {
+                break;
+            }
+        }
+        return out;
     }
 
     private Outcome replay(AppointmentRow prior, BookingCommand cmd) {
@@ -378,8 +432,11 @@ public class BookingService {
         if (actor.hasAny(Role.FRONT_DESK, Role.ADMIN, Role.NURSE)) {
             return;
         }
-        if (actor.has(Role.DOCTOR) && directory.practitionerIdFor(actor).filter(a.practitionerId()::equals).isPresent()) {
-            return;
+        if (actor.has(Role.DOCTOR)) {
+            if (directory.practitionerIdFor(actor).filter(a.practitionerId()::equals).isPresent()) {
+                return;
+            }
+            throw ApiException.forbidden("forbidden", "doctors see their own appointments");
         }
         directory.authorisePatientAccess(actor, a.patientId());
     }

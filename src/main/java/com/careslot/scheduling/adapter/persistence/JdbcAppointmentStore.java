@@ -36,7 +36,7 @@ class JdbcAppointmentStore implements AppointmentStore {
 
     @Override
     public void lockIdempotencyKey(String scope, String key) {
-        jdbc.sql("select pg_advisory_xact_lock(hashtextextended(?, 0))").param(scope + "\u0000" + key)
+        jdbc.sql("select pg_advisory_xact_lock(hashtextextended(?, 0))").param(scope.length() + ":" + scope + ":" + key) // length prefix keeps (scope, key) pairs distinct
                 .query((rs, n) -> 1).list();
     }
 
