@@ -1,0 +1,95 @@
+spring:
+  application:
+    name: careslot
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${CARESLOT_DB_URL:jdbc:postgresql://localhost:5432/careslot}
+    username: ${CARESLOT_DB_USER:careslot}
+    password: ${CARESLOT_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 24
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${CARESLOT_REDIS_HOST:localhost}
+      port: ${CARESLOT_REDIS_PORT:6379}
+      password: ${CARESLOT_REDIS_PASSWORD:}
+      timeout: 500ms
+  kafka:
+    bootstrap-servers: ${CARESLOT_KAFKA:localhost:9092}
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+        linger.ms: 5
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      ack-mode: record
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${CARESLOT_ISSUER:http://localhost:8080/default}
+  servlet:
+    multipart:
+      enabled: false
+
+server:
+  port: ${CARESLOT_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    max-swallow-size: 1MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        careslot.booking: true
+
+careslot:
+  phi:
+    key: ${CARESLOT_PHI_KEY:}
+  booking:
+    max-attempts: 5
+    per-patient-per-minute: ${CARESLOT_BOOKING_RATE:10}
+    max-overflow-probability: 0.25
+    max-extra-fraction: 0.5
+    min-observations: 50
+    no-show-grace: 30m
+    no-show-sweep: 5m
+    horizon-days: 28
+  queue:
+    default-consult: 10m
+    alpha: 0.2
+  reminders:
+    poll: 5s
+    per-second: 20
+    before1: 24h
+    before2: 2h
+    max-attempts: 5
+  records:
+    mode: ${CARESLOT_RECORDS_MODE:demo}
+    fhir-base: ${CARESLOT_FHIR_BASE:}
+    timeout: 2s
+  outbox:
+    poll: 200ms
+    batch: 200
+  availability:
+    ttl: 10m
+
+logging:
+  level:
+    org.apache.kafka: WARN
