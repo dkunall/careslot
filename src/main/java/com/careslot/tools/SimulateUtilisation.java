@@ -19,7 +19,7 @@ public final class SimulateUtilisation {
         double noShow = args.length > 0 ? Double.parseDouble(args[0]) : 0.20;
         double cancel = args.length > 1 ? Double.parseDouble(args[1]) : 0.10;
         double fill = args.length > 2 ? Double.parseDouble(args[2]) : 0.60;
-        Params p = new Params(250, 16, 4, noShow, cancel, fill, 42L);
+        Params p = new Params(250, 8, 6, noShow, cancel, fill, 42L);
         // the estimate a clinic with this rate would have after 1,000 finished visits
         NoShowEstimate est = new NoShowEstimate(Math.round(1000 * (1 - noShow)), Math.round(1000 * noShow), 200);
         OverbookingPolicy none = new OverbookingPolicy.Fixed(0);
