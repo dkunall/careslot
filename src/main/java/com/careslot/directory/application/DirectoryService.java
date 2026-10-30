@@ -1,6 +1,6 @@
 package com.careslot.directory.application;
 
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.shared.audit.PhiAudit;
 import com.careslot.shared.crypto.PhiCipher;
 import com.careslot.shared.error.ApiException;

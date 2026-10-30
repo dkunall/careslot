@@ -8,7 +8,7 @@ import com.careslot.scheduling.domain.BookingOption;
 import com.careslot.scheduling.domain.Interval;
 import com.careslot.scheduling.domain.NoShowEstimate;
 import com.careslot.scheduling.domain.OverbookingPolicy;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.scheduling.domain.SlotAllocator;
 import com.careslot.scheduling.domain.SlotRef;
 import com.careslot.shared.config.CareSlotProperties;

@@ -4,7 +4,7 @@ import com.careslot.directory.application.Clinic;
 import com.careslot.directory.application.DirectoryStore;
 import com.careslot.directory.application.Facility;
 import com.careslot.directory.application.Resource;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 

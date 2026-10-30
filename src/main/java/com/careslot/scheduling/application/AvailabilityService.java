@@ -4,7 +4,7 @@ import com.careslot.directory.application.DirectoryService;
 import com.careslot.directory.application.Resource;
 import com.careslot.scheduling.domain.Interval;
 import com.careslot.scheduling.domain.OverbookingPolicy;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.shared.config.CareSlotProperties;
 import com.careslot.shared.error.ApiException;
 import io.micrometer.core.instrument.MeterRegistry;

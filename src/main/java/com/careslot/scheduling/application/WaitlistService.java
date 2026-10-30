@@ -3,7 +3,7 @@ package com.careslot.scheduling.application;
 import com.careslot.directory.application.DirectoryService;
 import com.careslot.directory.application.Resource;
 import com.careslot.scheduling.domain.Interval;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.scheduling.domain.WaitlistEntry;
 import com.careslot.scheduling.domain.WaitlistRanking;
 import com.careslot.shared.error.ApiException;

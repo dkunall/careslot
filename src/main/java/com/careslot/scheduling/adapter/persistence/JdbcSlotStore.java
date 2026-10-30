@@ -4,7 +4,7 @@ import com.careslot.scheduling.application.SlotRow;
 import com.careslot.scheduling.application.SlotStore;
 import com.careslot.scheduling.application.TemplateRow;
 import com.careslot.scheduling.domain.Interval;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.scheduling.domain.SlotPlanner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;

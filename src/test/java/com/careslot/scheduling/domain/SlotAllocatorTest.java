@@ -1,5 +1,7 @@
 package com.careslot.scheduling.domain;
 
+import com.careslot.shared.domain.ResourceKind;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

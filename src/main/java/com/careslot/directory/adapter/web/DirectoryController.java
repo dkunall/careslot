@@ -2,7 +2,7 @@ package com.careslot.directory.adapter.web;
 
 import com.careslot.directory.application.DirectoryService;
 import com.careslot.directory.application.PatientView;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.shared.security.Actors;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;

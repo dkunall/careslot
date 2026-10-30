@@ -1,6 +1,6 @@
 package com.careslot.directory.application;
 
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 
 import java.util.UUID;
 

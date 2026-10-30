@@ -5,7 +5,7 @@ import com.careslot.directory.application.Resource;
 import com.careslot.scheduling.domain.Interval;
 import com.careslot.scheduling.domain.IntervalTree;
 import com.careslot.scheduling.domain.RecurrenceRule;
-import com.careslot.scheduling.domain.ResourceKind;
+import com.careslot.shared.domain.ResourceKind;
 import com.careslot.scheduling.domain.ScheduleTemplate;
 import com.careslot.scheduling.domain.SlotPlanner;
 import com.careslot.shared.config.CareSlotProperties;
