@@ -53,7 +53,8 @@ public abstract class ItBase {
         r.add("spring.data.redis.port", () -> Containers.redis().getMappedPort(6379));
         r.add("spring.data.redis.password", () -> "");
         r.add("careslot.phi.key", () -> Containers.PHI_KEY);
-        r.add("careslot.booking.per-patient-per-minute", () -> "1000");
+        // placeholder so one IT class can lower it with @TestPropertySource(properties = "careslot.test.booking-rate=5")
+        r.add("careslot.booking.per-patient-per-minute", () -> "${careslot.test.booking-rate:1000}");
         r.add("careslot.reminders.poll", () -> "300ms");
     }
 
