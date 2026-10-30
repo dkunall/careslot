@@ -71,8 +71,8 @@ The demo covers:
 
 - concurrent bookings on one slot never exceed capacity;
 - two needs-combinations contending for shared rooms;
-- 10 concurrent requests with one idempotency key give one appointment;
-- a patient racing herself across two doctors;
+- 8 concurrent requests with one idempotency key give one appointment;
+- a patient racing herself for overlapping appointments;
 - a reschedule that fails keeps the original;
 - waitlist priority, and redelivered events;
 - 20 concurrent check-ins give distinct tokens;
