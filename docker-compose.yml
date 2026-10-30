@@ -1,0 +1,91 @@
+name: careslot
+
+# Secrets come from an env file that scripts/up.sh generates outside the repo; nothing here has a default.
+# Every published port binds to 127.0.0.1 only. All patient data in the demo is synthetic.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: careslot
+      POSTGRES_USER: careslot
+      POSTGRES_PASSWORD: ${CARESLOT_DB_PASSWORD:?run scripts/up.sh or set CARESLOT_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careslot"]
+      interval: 3s
+      retries: 30
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${CARESLOT_REDIS_PASSWORD:?set CARESLOT_REDIS_PASSWORD}
+      REDISCLI_AUTH: ${CARESLOT_REDIS_PASSWORD}
+    command: ["sh", "-c", "exec redis-server --save '' --appendonly no --requirepass \"$$REDIS_PASSWORD\""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.8.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_HEAP_OPTS: -Xmx256m -Xms256m
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  # Stand-in for the hospital IdP. Issues a token to any client_id: the client_id becomes the subject
+  # and the requested scope (one CareSlot role) decides what the token may do. Demo only.
+  oauth:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    environment:
+      SERVER_PORT: 8080
+      JSON_CONFIG: |
+        {"interactiveLogin": false, "tokenCallbacks": [{"issuerId": "careslot", "tokenExpiry": 3600, "requestMappings": [
+            {"requestParam": "scope", "match": "careslot.admin", "claims": {"sub": "$${clientId}", "scope": "careslot.admin"}},
+            {"requestParam": "scope", "match": "careslot.front-desk", "claims": {"sub": "$${clientId}", "scope": "careslot.front-desk"}},
+            {"requestParam": "scope", "match": "careslot.nurse", "claims": {"sub": "$${clientId}", "scope": "careslot.nurse"}},
+            {"requestParam": "scope", "match": "careslot.doctor", "claims": {"sub": "$${clientId}", "scope": "careslot.doctor"}},
+            {"requestParam": "scope", "match": "careslot.patient", "claims": {"sub": "$${clientId}", "scope": "careslot.patient"}}
+        ]}]}
+    ports:
+      - "127.0.0.1:7891:8080"
+
+  app:
+    build: .
+    image: careslot:local
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      oauth: { condition: service_started }
+    environment:
+      CARESLOT_PORT: 7890
+      CARESLOT_DB_URL: jdbc:postgresql://db:5432/careslot
+      CARESLOT_DB_PASSWORD: ${CARESLOT_DB_PASSWORD}
+      CARESLOT_REDIS_HOST: redis
+      CARESLOT_REDIS_PASSWORD: ${CARESLOT_REDIS_PASSWORD}
+      CARESLOT_KAFKA: kafka:9092
+      CARESLOT_ISSUER: http://oauth:8080/careslot
+      CARESLOT_PHI_KEY: ${CARESLOT_PHI_KEY:?set CARESLOT_PHI_KEY}
+      CARESLOT_BOOKING_RATE: ${CARESLOT_BOOKING_RATE:-10}
+      JAVA_TOOL_OPTIONS: -Xmx512m -XX:+ExitOnOutOfMemoryError
+    ports:
+      - "127.0.0.1:7890:7890"
+
+volumes:
+  db:
