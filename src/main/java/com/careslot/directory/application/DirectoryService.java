@@ -173,6 +173,10 @@ public class DirectoryService {
         return store.holidays(facilityId, from, to);
     }
 
+    public Optional<ZoneId> practitionerZone(UUID resourceId) {
+        return store.resource(resourceId).flatMap(r -> store.facility(r.facilityId())).map(Facility::zone);
+    }
+
     public ZoneId zoneOf(UUID resourceId) {
         return facility(resource(resourceId).facilityId()).zone();
     }
