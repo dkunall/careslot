@@ -7,6 +7,8 @@ RUN mvn -q -B -DskipTests package \
     && java -Djarmode=tools -jar target/careslot-*.jar extract --layers --launcher --destination /extracted
 
 FROM eclipse-temurin:21-jre-alpine
+# Pick up Alpine security fixes released after the base image was built.
+RUN apk upgrade --no-cache
 RUN addgroup -S careslot && adduser -S -G careslot -u 10001 careslot
 WORKDIR /app
 COPY --from=build /extracted/dependencies/ ./
